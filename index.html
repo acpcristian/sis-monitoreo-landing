@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sistema profesional de monitoreo de servicios y aplicaciones web en tu propio servidor. Uptime, tiempo de respuesta, certificados SSL y alertas en tiempo real.">
+  <title>SIS MONITOREO | Monitoreo de Servicios y Aplicaciones Web Autohospedado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="20" height="20" x="2" y="2" rx="4" stroke="currentColor" stroke-width="2"/>
+          <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 16H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="12" cy="12" r="1" fill="currentColor"/>
+        </svg>
+        <span>SIS<span style="color:#818cf8">MONITOREO</span></span>
+      </a>
+
+      <div class="nav-links" id="navLinks">
+        <a href="#features" class="nav-link">Características</a>
+        <a href="#how-it-works" class="nav-link">Cómo funciona</a>
+        <a href="#pricing" class="nav-link">Precios</a>
+        <a href="#faq" class="nav-link">Preguntas</a>
+        <a href="#" class="nav-link btn btn-primary">Iniciar prueba</a>
+      </div>
+
+      <div class="nav-actions">
+        <a href="#" class="btn btn-outline">Demo en vivo</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Abrir menú">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        Autohospedado · Tú controlas tus datos
+      </div>
+      <h1 class="hero-title">Mantén tus servicios y aplicaciones<br>siempre en línea.</h1>
+      <p class="hero-subtitle">
+        Sistema profesional de monitoreo de servicios y aplicaciones web que ejecutas en tu propio servidor.
+        Supervisa uptime, tiempo de respuesta, certificados SSL y recibe alertas al instante si algo falla.
+      </p>
+      <div class="hero-cta">
+        <a href="#pricing" class="btn btn-primary btn-lg">Comenzar gratis</a>
+        <a href="#" class="btn btn-outline btn-lg">Ver demo en vivo</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-value">99.9%</span><span class="stat-label">Uptime promedio</span></div>
+        <div class="stat"><span class="stat-divider"></span></div>
+        <div class="stat"><span class="stat-value">0</span><span class="stat-label">Cuotas mensuales</span></div>
+        <div class="stat"><span class="stat-divider"></span></div>
+        <div class="stat"><span class="stat-value">Ilimitado</span><span class="stat-label">Monitores desde tu servidor</span></div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="dashboard-frame">
+        <div class="dashboard-header">
+          <div class="dh-title">Panel de control en tiempo real</div>
+          <div class="dh-status"><span class="dh-dot online"></span> Sistema operativo</div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="d-card uptime">
+            <div class="d-label">Uptime global</div>
+            <div class="d-value">99.98%</div>
+            <div class="d-trend"><span class="trend up">▲ 0.12%</span> vs ayer</div>
+          </div>
+          <div class="d-card response">
+            <div class="d-label">Tiempo de respuesta medio</div>
+            <div class="d-value">142 ms</div>
+            <div class="d-trend"><span class="trend down">▼ 18 ms</span> vs ayer</div>
+          </div>
+          <div class="d-card services">
+            <div class="d-label">Servicios monitoreados</div>
+            <div class="d-value">24</div>
+            <div class="d-trend"><span class="trend up">▲ 2</span> nuevos esta semana</div>
+          </div>
+        </div>
+        <div class="dashboard-list">
+          <div class="dl-header">
+            <span>Servicios</span>
+            <span>Estado</span>
+            <span>Respuesta</span>
+          </div>
+          <div class="dl-item">
+            <span class="dl-name">api.miempresa.com</span>
+            <span class="dl-badge dl-online">Operativo</span>
+            <span class="dl-time">89 ms</span>
+          </div>
+          <div class="dl-item">
+            <span class="dl-name">app.clientes.miempresa.com</span>
+            <span class="dl-badge dl-online">Operativo</span>
+            <span class="dl-time">134 ms</span>
+          </div>
+          <div class="dl-item">
+            <span class="dl-name">web.app.miempresa.com</span>
+            <span class="dl-badge dl-degraded">Degradado</span>
+            <span class="dl-time">2.1 s</span>
+          </div>
+          <div class="dl-item">
+            <span class="dl-name">api.externa.proveedor.com</span>
+            <span class="dl-badge dl-offline">Caído</span>
+            <span class="dl-time">--</span>
+          </div>
+        </div>
+        <div class="dashboard-sparkline">
+          <svg viewBox="0 0 400 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+            <path d="M10 60 Q40 30, 70 55 T130 25 T190 60 T250 40 T310 70 T370 45" stroke="#818cf8" stroke-width="2.5" fill="none"/>
+            <path d="M10 60 Q40 30, 70 55 T130 25 T190 60 T250 40 T310 70 T370 45" stroke="#818cf8" stroke-width="1" fill="#818cf8" opacity="0.12"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-kicker">Todo lo que necesitas</span>
+        <h2 class="section-title">Monitoreo completo, sin depender de terceros</h2>
+        <p class="section-text">Instálalo en tu propio servidor y obtén visibilidad total de tu infraestructura web.</p>
+      </div>
+
+      <div class="features-grid">
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3 class="feature-name">Uptime y disponibilidad</h3>
+          <p class="feature-text">Verifica cada minuto que tus servicios respondan. Historial de disponibilidad y reportes de incidentes.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <div class="feature-badge">SSL</div>
+          <h3 class="feature-name">Vigilancia de certificados SSL</h3>
+          <p class="feature-text">Alertas automáticas antes de que expire un certificado y detección de configuraciones inseguras.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h3 class="feature-name">Alertas en tiempo real</h3>
+          <p class="feature-text">Notificaciones por email y webhook en el instante en que un servicio cae o se recupera.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 class="feature-name">Dashboard propio</h3>
+          <p class="feature-text">Interfaz limpia y rápida alojada en tu servidor. Sin paneles externos ni cuotas por uso.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="feature-name">Tiempo de respuesta</h3>
+          <p class="feature-text">Mide la latencia de cada endpoint y detecta lentitudes antes de que afecten a tus usuarios.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+          <h3 class="feature-name">Privacidad total</h3>
+          <p class="feature-text">Todo corre en tu hardware. Los datos de monitoreo nunca salen de tu infraestructura.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section section-alt" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-kicker">Ponlo en marcha</span>
+        <h2 class="section-title">Desde cero a monitoreando en minutos</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">01</div>
+          <h3 class="step-title">Instala en tu servidor</h3>
+          <p class="step-text">Despliega el agente ligero de SIS MONITOREO en tu propio servidor (Docker o binario directo).</p>
+        </div>
+        <div class="step">
+          <div class="step-number">02</div>
+          <h3 class="step-title">Agrega tus servicios</h3>
+          <p class="step-text">Configura las URLs, puertos y certificados SSL que deseas vigilar desde el panel.</p>
+        </div>
+        <div class="step">
+          <div class="step-number">03</div>
+          <h3 class="step-title">Recibe alertas</h3>
+          <p class="step-text">Define umbrales y recibe notificaciones por email o webhook ante cualquier caída.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section" id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-kicker">Planes simples</span>
+        <h2 class="section-title">Elige el plan que se adapte a ti</h2>
+        <p class="section-text">Todos los planes incluyen monitoreo ilimitado en tu propio servidor.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-head">
+            <h3 class="pricing-name">Básico</h3>
+            <div class="pricing-price"><span class="currency">$</span><span class="amount">0</span><span class="period">/mes</span></div>
+            <p class="pricing-desc">Ideal para proyectos personales y pequeños equipos.</p>
+          </div>
+          <ul class="pricing-list">
+            <li><span class="check">✓</span> Hasta 10 monitores</li>
+            <li><span class="check">✓</span> Chequeo cada 5 minutos</li>
+            <li><span class="check">✓</span> Alertas por email</li>
+            <li><span class="check">✓</span> Historial de 7 días</li>
+            <li><span class="check">✓</span> Autohospedado</li>
+          </ul>
+          <a href="#" class="btn btn-outline btn-full">Empezar gratis</a>
+        </div>
+        <div class="pricing-card pricing-card--featured">
+          <div class="pricing-ribbon">Más popular</div>
+          <div class="pricing-head">
+            <h3 class="pricing-name">Profesional</h3>
+            <div class="pricing-price"><span class="currency">$</span><span class="amount">19</span><span class="period">/mes</span></div>
+            <p class="pricing-desc">Para equipos y entornos de producción.</p>
+          </div>
+          <ul class="pricing-list">
+            <li><span class="check">✓</span> Monitores ilimitados</li>
+            <li><span class="check">✓</span> Chequeo cada 60 segundos</li>
+            <li><span class="check">✓</span> Email + Webhooks</li>
+            <li><span class="check">✓</span> Vigilancia SSL</li>
+            <li><span class="check">✓</span> Historial de 90 días</li>
+            <li><span class="check">✓</span> Soporte prioritario</li>
+          </ul>
+          <a href="#" class="btn btn-primary btn-full">Elegir Profesional</a>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-head">
+            <h3 class="pricing-name">Enterprise</h3>
+            <div class="pricing-price"><span class="currency">$</span><span class="amount">49</span><span class="period">/mes</span></div>
+            <p class="pricing-desc">Infraestructura crítica y cumplimiento.</p>
+          </div>
+          <ul class="pricing-list">
+            <li><span class="check">✓</span> Todo lo de Profesional</li>
+            <li><span class="check">✓</span> Chequeo cada 30 segundos</li>
+            <li><span class="check">✓</span> Múltiples servidores (cluster)</li>
+            <li><span class="check">✓</span> API completa y webhooks</li>
+            <li><span class="check">✓</span> Historial de 1 año</li>
+            <li><span class="check">✓</span> SLA y soporte dedicado</li>
+          </ul>
+          <a href="#" class="btn btn-outline btn-full">Contactar ventas</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section section-alt" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-kicker">Preguntas frecuentes</span>
+        <h2 class="section-title">Dudas comunes antes de empezar</h2>
+      </div>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            ¿Necesito servidor propio para usar SIS MONITOREO?
+          </button>
+          <div class="faq-answer" hidden>
+            Sí. El sistema está diseñado para instalarse en tu propio servidor (VPS, dedicado o local). Tú eres dueño de los datos y de la infraestructura.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            ¿Puedo ejecutarlo con Docker?
+          </button>
+          <div class="faq-answer" hidden>
+            Sí. Ofrecemos una imagen oficial de Docker y un archivo docker-compose listo para desplegar en minutos.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            ¿Cuántos servicios puedo monitorear?
+          </button>
+          <div class="faq-answer" hidden>
+            Depende del plan: el plan gratuito permite hasta 10 monitores, mientras que Professional y Enterprise son ilimitados.
+          </div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question" aria-expanded="false">
+            ¿Qué tan seguros son mis datos?
+          </button>
+          <div class="faq-answer" hidden>
+            Muy seguros. Al estar autohospedado, la información de monitoreo nunca sale de tu servidor. Tú controlas el acceso y los backups.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section cta-section">
+    <div class="container cta-card">
+      <div class="cta-content">
+        <h2 class="cta-title">¿Listo para vigilar tus servicios?</h2>
+        <p class="cta-text">Instala SIS MONITOREO en tu servidor hoy y empieza a recibir alertas antes de que tus clientes noten un problema.</p>
+        <a href="#" class="btn btn-primary btn-lg">Comenzar prueba gratuita</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="nav-logo" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="20" height="20" x="2" y="2" rx="4" stroke="currentColor" stroke-width="2"/>
+            <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M8 12H12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 16H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="12" r="1" fill="currentColor"/>
+          </svg>
+          <span>SIS<span style="color:#818cf8">MONITOREO</span></span>
+        </a>
+        <p class="footer-text">Sistema profesional de monitoreo de servicios y aplicaciones web autohospedado. Tú controlas tus datos.</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Producto</h4>
+          <a href="#">Características</a>
+          <a href="#">Precios</a>
+          <a href="#">Demo</a>
+          <a href="#">Documentación</a>
+        </div>
+        <div class="footer-col">
+          <h4>Empresa</h4>
+          <a href="#">Nosotros</a>
+          <a href="#">Blog</a>
+          <a href="#">Términos</a>
+          <a href="#">Privacidad</a>
+        </div>
+        <div class="footer-col">
+          <h4>Soporte</h4>
+          <a href="#">Centro de ayuda</a>
+          <a href="#">Estado del sistema</a>
+          <a href="#">Contacto</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 SIS MONITOREO. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
