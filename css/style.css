@@ -97,6 +97,43 @@ img {
   height: 72px;
 }
 
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gamea-logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  height: 42px;
+  transition: transform var(--transition), box-shadow var(--transition);
+  text-decoration: none;
+}
+
+.gamea-logo-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(129, 140, 248, 0.35);
+}
+
+.gamea-logo-img {
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border-hover);
+}
+
 .nav-logo {
   display: flex;
   align-items: center;
