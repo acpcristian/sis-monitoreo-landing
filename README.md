@@ -1,38 +1,31 @@
-# SIS MONITOREO — Landing Page
+# SIS MONITOREO — Plataforma de Monitoreo de Servidores y Servicios
 
-Landing profesional para tu sistema de monitoreo de servicios y aplicaciones web autohospedado.
+Sistema profesional de monitoreo de servidores, contenedores Docker y aplicaciones autohospedadas con integración directa a la API de Coolify.
 
-## Estructura
+## Estructura del Proyecto
 
 ```
 landing-sis-monitoreo/
-├── index.html          # Página principal
+├── index.html          # Landing page principal
+├── dashboard.html      # Panel de Control interactivo de Monitoreo
 ├── css/
-│   └── style.css       # Estilos (tema oscuro, responsive, sin dependencias)
+│   ├── style.css       # Estilos de la landing
+│   └── dashboard.css   # Estilos glassmorphism y responsive del dashboard
 └── js/
-    └── main.js         # Menú móvil, FAQ, scroll, animaciones al hacer scroll
+    ├── main.js         # Lógica interactiva de la landing
+    └── dashboard.js    # Conexión con Coolify API, gestión de servidores por IP y monitoreo en tiempo real
 ```
 
-## Cómo verla
+## Características del Panel (`dashboard.html`)
 
-1. Abre `index.html` directamente en tu navegador, o
-2. Sirvela con cualquier servidor estático, por ejemplo con Python:
+- **Gestión de Servidores por IP:** Registro de nuevos servidores mediante IP, puerto SSH, usuario y clave privada SSH en Coolify.
+- **Detección Automática de Servicios:** Consulta en tiempo real a Coolify para listar aplicaciones web, bases de datos (Postgres, MySQL, Redis, MongoDB), proxies (Traefik) y contenedores.
+- **Estado en Vivo:** Indicadores luminosos de estado (En Ejecución, Degradado, Fuera de línea) y latencia hacia el orquestador.
+- **Acciones Rápidas:** Validación de conectividad SSH, reinicio de servicios, copia rápida de IP y enlaces directos a URLs y panel de Coolify.
+- **Asistente de Agente / SSH:** Generación del comando de 1 línea para autorizar la clave SSH de Coolify en cualquier servidor remoto.
+- **Configuración Personalizable:** Panel para configurar la URL de la API, token Bearer e intervalo de auto-refresco (10s, 30s, 60s).
 
-   ```bash
-   python -m http.server 8000
-   ```
-   Luego visita `http://localhost:8000`.
+## Despliegue en Coolify
 
-## Personalización rápida
+Este proyecto se despliega automáticamente en Coolify mediante Nginx estático conectando a la rama `main` del repositorio `acpcristian/sis-monitoreo-landing`.
 
-- **Colores:** edita las variables CSS al inicio de `css/style.css` (`:root`).
-- **Texto y marca:** modifica `index.html` (títulos, copia, precios, enlaces).
-- **Imágenes:** la landing usa íconos SVG integrados y un maquetado de dashboard hecho con CSS, así que no depende de imágenes externas. Solo la fuente "Inter" se carga desde Google Fonts (puedes quitarla si quieres que sea 100 % offline).
-
-## Despliegue
-
-Siendo archivos estáticos, puedes subir la carpeta a:
-- Tu propio servidor (Nginx / Apache / Caddy)
-- GitHub Pages, Vercel o Netlify
-
-No requiere backend ni base de datos para la landing en sí.

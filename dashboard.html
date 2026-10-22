@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SIS MONITOREO — Panel de control en tiempo real para servidores, aplicaciones y servicios Docker autohospedados.">
+  <title>SIS MONITOREO | Panel de Control y Servidores</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dash-body">
+
+  <!-- Header / Navigation -->
+  <header class="dash-header">
+    <div class="dash-nav-container">
+      <div style="display:flex; align-items:center; gap:20px;">
+        <a href="index.html" class="dash-brand" title="Volver a la página principal">
+          <div class="dash-brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="4"/>
+              <path d="M12 8v4M8 12h4M12 16H8"/>
+              <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <span class="dash-brand-text">SIS<span style="color:var(--primary)">MONITOREO</span></span>
+          <span class="dash-brand-badge">Panel v1.0</span>
+        </a>
+
+        <!-- API Status Pill -->
+        <div class="api-status-pill" id="apiStatusPill">
+          <span class="status-dot" id="apiStatusDot"></span>
+          <span id="apiStatusText">Conectando con Coolify...</span>
+          <span class="badge-mini online" id="apiLatencyBadge" style="display:none;">0 ms</span>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="dash-actions">
+        <button class="btn btn-outline btn-sm" id="btnRefresh" title="Actualizar datos de servidores y servicios">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+          <span>Actualizar</span>
+        </button>
+
+        <button class="btn btn-primary btn-sm" id="btnOpenAddServer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>Agregar Servidor por IP</span>
+        </button>
+
+        <button class="btn-icon" id="btnOpenConfig" title="Configurar conexión API Coolify">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+
+        <a href="index.html" class="btn btn-outline btn-sm" title="Ir a la Landing Page">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="desktop-only">Landing</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="dash-main">
+
+    <!-- KPI Metric Cards Row -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Servidores Online</span>
+          <div class="metric-icon-box green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+              <line x1="6" y1="6" x2="6.01" y2="6"/>
+              <line x1="6" y1="18" x2="6.01" y2="18"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="metricServersVal">--/--</div>
+        <div class="metric-sub" id="metricServersSub">Cargando servidores...</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Servicios Activos</span>
+          <div class="metric-icon-box">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="metricServicesVal">--/--</div>
+        <div class="metric-sub" id="metricServicesSub">Contenedores y aplicaciones</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Latencia API</span>
+          <div class="metric-icon-box cyan">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="metricLatencyVal">-- ms</div>
+        <div class="metric-sub" id="metricLatencySub">Comprobando...</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-label">Agente Sentinel</span>
+          <div class="metric-icon-box purple">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="metric-value" id="metricSentinelVal">--/--</div>
+        <div class="metric-sub" id="metricSentinelSub">Métricas del sistema</div>
+      </div>
+    </div>
+
+    <!-- Section: Servers Infrastructure -->
+    <section class="servers-section">
+      <div class="section-top-bar">
+        <div class="section-heading">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+            <line x1="6" y1="6" x2="6.01" y2="6"/>
+            <line x1="6" y1="18" x2="6.01" y2="18"/>
+          </svg>
+          <h2>Servidores e Infraestructura</h2>
+          <span class="section-counter" id="serversCount">0 Servidores</span>
+        </div>
+
+        <button class="btn btn-outline btn-sm" onclick="openAddServerModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>Agregar Servidor por IP</span>
+        </button>
+      </div>
+
+      <!-- Servers Grid -->
+      <div class="servers-grid" id="serversGrid">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- Section: Running Services -->
+    <section class="services-section" id="servicesSection">
+      <div class="section-top-bar">
+        <div class="section-heading">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <h2>Servicios en Ejecución</h2>
+          <span class="section-counter" id="servicesCount">0 Servicios</span>
+        </div>
+
+        <!-- Filter and Search Controls -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <select id="serverFilterSelect" style="padding:7px 12px; font-size:0.85rem; border-radius:var(--radius-sm); background:var(--bg-card); border:1px solid var(--border); color:var(--text); outline:none;">
+              <option value="all">Todos los Servidores</option>
+            </select>
+
+            <button class="filter-btn active" data-type="all">Todos</button>
+            <button class="filter-btn" data-type="application">Aplicaciones Web</button>
+            <button class="filter-btn" data-type="database">Bases de Datos</button>
+            <button class="filter-btn" data-type="proxy">Reverse Proxy</button>
+          </div>
+
+          <div class="search-input-box">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input type="text" id="serviceSearchInput" placeholder="Buscar por servicio, IP o FQDN...">
+          </div>
+        </div>
+      </div>
+
+      <!-- Services Table -->
+      <div class="services-table-wrapper">
+        <table class="services-table">
+          <thead>
+            <tr>
+              <th>Servicio / Aplicación</th>
+              <th>Servidor (IP)</th>
+              <th>Stack / Imagen</th>
+              <th>Dominio / Puerto</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="servicesTableBody">
+            <!-- Rendered via JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal: Agregar Servidor por IP -->
+  <div class="modal-overlay" id="addServerModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+            <line x1="6" y1="6" x2="6.01" y2="6"/>
+            <line x1="6" y1="18" x2="6.01" y2="18"/>
+          </svg>
+          Agregar Servidor por IP
+        </h3>
+        <button class="modal-close-btn" onclick="closeAddServerModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="addServerForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="serverNameInput">Nombre descriptivo del Servidor</label>
+            <input type="text" id="serverNameInput" placeholder="Ej: srv-web-produccion, srv-bd-01" required>
+            <span class="form-hint">Un nombre que identifique la función del servidor.</span>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="serverIpInput">Dirección IP o Hostname</label>
+              <input type="text" id="serverIpInput" placeholder="Ej: 172.16.100.30 o 192.168.1.50" required>
+              <span class="form-hint">IP accesible desde Coolify.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="serverPortInput">Puerto SSH</label>
+              <input type="number" id="serverPortInput" value="22" min="1" max="65535" required>
+              <span class="form-hint">Por defecto puerto 22.</span>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="serverUserInput">Usuario SSH</label>
+              <input type="text" id="serverUserInput" value="root" required>
+              <span class="form-hint">Usuario con permisos sudo/docker.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="serverPrivateKeySelect">Clave Privada SSH</label>
+              <select id="serverPrivateKeySelect" required>
+                <!-- Populated via JS -->
+              </select>
+              <span class="form-hint">Clave registrada en Coolify.</span>
+            </div>
+          </div>
+
+          <!-- Quick SSH Agent Setup Guide -->
+          <div class="form-group">
+            <label>Paso Previo: Autorizar acceso SSH en el servidor remoto</label>
+            <div class="code-snippet-box">
+              <div class="code-snippet-header">
+                <span>Comando para ejecutar en tu servidor remoto:</span>
+                <button type="button" class="btn-copy-code" onclick="copyToClipboard(document.getElementById('sshCommandSnippet').textContent, 'Comando SSH copiado')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copiar comando
+                </button>
+              </div>
+              <pre class="code-snippet-pre" id="sshCommandSnippet">mkdir -p ~/.ssh && echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIIIie7EVIXix1uny2ltEIuTvFZTCz17aT61+4QWa6/a coolify" >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys</pre>
+            </div>
+            <span class="form-hint">Esto permite a Coolify conectarse por SSH, instalar el agente Sentinel y listar los servicios Docker y systemd.</span>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeAddServerModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="btnAddServerSubmit">
+            Registrar y Validar Servidor
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Instrucciones SSH / Agente -->
+  <div class="modal-overlay" id="sshAgentModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <polyline points="4 17 10 11 4 5"/>
+            <line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+          Instrucciones de Conexión SSH y Agente
+        </h3>
+        <button class="modal-close-btn" onclick="closeSshAgentModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size:0.9rem; color:var(--text-muted);">
+          Para conectar y monitorear el servidor <strong id="sshAgentTargetServer" style="color:var(--primary)">servidor</strong>, sigue estos sencillos pasos:
+        </p>
+
+        <div class="code-snippet-box">
+          <div class="code-snippet-header">
+            <span>Guía de Comandos:</span>
+            <button type="button" class="btn-copy-code" onclick="copyToClipboard(document.getElementById('sshAgentFullCommand').textContent, 'Comandos copiados')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              Copiar
+            </button>
+          </div>
+          <pre class="code-snippet-pre" id="sshAgentFullCommand"></pre>
+        </div>
+
+        <div style="background:rgba(129, 140, 248, 0.08); border:1px solid rgba(129, 140, 248, 0.2); border-radius:var(--radius-sm); padding:12px; font-size:0.82rem; color:var(--text);">
+          <strong style="color:var(--primary);">¿Cómo funciona el monitoreo?</strong><br>
+          Al validar la conexión SSH, Coolify inicializa el agente <strong>Sentinel</strong> y el socket de Docker. Todos los contenedores, servicios y puertos se detectan automáticamente y se reportan en este panel en tiempo real.
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary btn-sm" onclick="closeSshAgentModal()">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Configuración API Coolify -->
+  <div class="modal-overlay" id="configModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          Configuración API Coolify
+        </h3>
+        <button class="modal-close-btn" onclick="closeConfigModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="configForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="cfgApiUrl">URL Base de Coolify</label>
+            <input type="url" id="cfgApiUrl" required placeholder="https://monitoreosrv.elalto.gob.bo">
+            <span class="form-hint">Dirección de tu instancia de Coolify con HTTPS.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="cfgApiToken">Token de Acceso Bearer (API Token)</label>
+            <input type="password" id="cfgApiToken" required placeholder="1|...">
+            <span class="form-hint">Token generado en Coolify > Keys & Tokens > API Tokens.</span>
+          </div>
+
+          <div class="form-group">
+            <label for="cfgRefreshInterval">Intervalo de Actualización Automática</label>
+            <select id="cfgRefreshInterval">
+              <option value="10">Cada 10 segundos (Alta frecuencia)</option>
+              <option value="30" selected>Cada 30 segundos (Recomendado)</option>
+              <option value="60">Cada 1 minuto</option>
+              <option value="0">Desactivado (Solo manual)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline btn-sm" onclick="closeConfigModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary btn-sm">Guardar Configuración</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
