@@ -945,3 +945,565 @@ document.addEventListener('DOMContentLoaded', () => {
   syncDashboardData();
   setupAutoRefresh();
 });
+
+// ============================================================
+//  LOG REPORT SYSTEM — SIS MONITOREO
+//  Fetch, parse, categorize, and display server logs
+// ============================================================
+
+// Log Report State
+const logReportState = {
+  serverUuid: null,
+  serverName: '',
+  serverIp: '',
+  rawLines: [],
+  filteredLines: [],
+  activeCategory: 'all',
+  searchQuery: '',
+  generatedAt: null,
+};
+
+// ---- API Methods for Logs ----
+class LogAPI {
+  static async getServerLogs(serverUuid) {
+    try {
+      const data = await CoolifyAPI.request(`/servers/${serverUuid}/logs`);
+      if (data && (data.logs || data.data || Array.isArray(data))) {
+        const raw = data.logs || data.data || data;
+        return Array.isArray(raw) ? raw.join('\n') : String(raw);
+      }
+    } catch (_) {}
+
+    try {
+      const resources = await CoolifyAPI.request(`/servers/${serverUuid}/resources`);
+      const lines = [];
+      if (Array.isArray(resources)) {
+        resources.forEach(r => {
+          if (r.status) lines.push(`[INFO] ${r.name || r.id}: status=${r.status}`);
+          if (r.last_deployment_status) {
+            const lvl = r.last_deployment_status === 'finished' ? 'SUCCESS' : 'WARNING';
+            lines.push(`[${lvl}] ${r.name}: last_deploy=${r.last_deployment_status}`);
+          }
+        });
+      }
+      if (lines.length > 0) return lines.join('\n');
+    } catch (_) {}
+
+    return null;
+  }
+
+  static async getApplicationLogs(serverUuid) {
+    const logs = [];
+    const serverApps = state.services.filter(
+      s => s.serverUuid === serverUuid && s.type === 'application' && s.uuid
+    );
+    await Promise.allSettled(serverApps.slice(0, 5).map(async app => {
+      try {
+        const data = await CoolifyAPI.request(`/applications/${app.uuid}/logs`);
+        const raw = data?.logs || data?.data || '';
+        if (raw) {
+          logs.push(`\n--- [APP: ${app.name}] ---`);
+          logs.push(typeof raw === 'string' ? raw : raw.join('\n'));
+        }
+      } catch (_) {}
+    }));
+    return logs.join('\n');
+  }
+}
+
+// ---- Log Parser ----
+function classifyLogLine(text) {
+  const t = text.toLowerCase();
+  if (/\b(error|err|fatal|critical|exception|traceback|failed|failure|panic|crash|abort|undefined|null pointer|segfault|oom|killed|denied|refused|cannot|unable to|no such|not found|timed out|connection reset)\b/.test(t)) return 'error';
+  if (/\b(warn(?:ing)?|deprecated|slow|retry|retrying|timeout(?:ed)?|missing|skipping|ignored|attention|caution|high (?:cpu|memory|load)|overload)\b/.test(t)) return 'warning';
+  if (/\b(success(?:ful(?:ly)?)?|ok\b|done|started|running|healthy|ready|deployed|connected|accepted|created|registered|completed|200|201|204)\b/.test(t)) return 'success';
+  if (/\b(debug|trace|verbose|diag)\b/.test(t)) return 'debug';
+  if (/^\[?(info|notice|log)\]?[\s:]/.test(t)) return 'info';
+  if (/\s[45]\d{2}\s/.test(t)) return 'error';
+  if (/\s[23]\d{2}\s/.test(t)) return 'success';
+  return 'info';
+}
+
+function extractTimestamp(text) {
+  const isoMatch = text.match(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}/);
+  if (isoMatch) return isoMatch[0].replace('T', ' ');
+  const timeMatch = text.match(/\d{2}:\d{2}:\d{2}/);
+  if (timeMatch) return timeMatch[0];
+  return '';
+}
+
+function parseLogLines(rawText) {
+  if (!rawText) return [];
+  return rawText
+    .split('\n')
+    .map(line => line.trimEnd())
+    .filter(line => line.length > 0)
+    .map((line, idx) => ({
+      idx: idx + 1,
+      raw: line,
+      level: classifyLogLine(line),
+      time: extractTimestamp(line),
+      text: line.replace(/^\[?(ERROR|WARN(?:ING)?|INFO|DEBUG|SUCCESS|NOTICE|TRACE|FATAL|CRITICAL)\]?[\s:]*/i, '').trim() || line,
+    }));
+}
+
+function buildInsights(lines, serverName) {
+  const counts = { error: 0, warning: 0, info: 0, success: 0, debug: 0 };
+  lines.forEach(l => { if (counts[l.level] !== undefined) counts[l.level]++; });
+  const total = lines.length;
+  const insights = [];
+
+  if (total === 0) {
+    insights.push({ color: 'blue', text: 'No se encontraron logs disponibles. Verifica que el agente Sentinel esté activo.' });
+    return insights;
+  }
+  if (counts.error > 0) {
+    const pct = Math.round((counts.error / total) * 100);
+    if (pct >= 20) {
+      insights.push({ color: 'red', text: `Alta tasa de errores: ${counts.error} errores (${pct}% del total). Se recomienda revisión inmediata.` });
+    } else {
+      insights.push({ color: 'red', text: `Se detectaron ${counts.error} error(es). Revisa los registros en rojo para identificar la causa raíz.` });
+    }
+  }
+  if (counts.warning > 0) {
+    insights.push({ color: 'yellow', text: `${counts.warning} advertencia(s) registradas. Pueden indicar degradación de rendimiento o configuraciones pendientes.` });
+  }
+  if (counts.success > 0) {
+    insights.push({ color: 'green', text: `${counts.success} eventos exitosos confirmados. Los servicios responden correctamente.` });
+  }
+  if (counts.error === 0 && counts.warning === 0) {
+    insights.push({ color: 'green', text: `✓ Sin errores ni advertencias. El servidor "${serverName}" opera en condiciones óptimas.` });
+  }
+  if (counts.debug > 0) {
+    insights.push({ color: 'blue', text: `${counts.debug} líneas de depuración presentes. Considera reducir el nivel de log en producción.` });
+  }
+
+  const runningCount = state.services.filter(s => s.serverUuid === logReportState.serverUuid && (s.status.includes('running') || s.status.includes('healthy'))).length;
+  const totalOnServer = state.services.filter(s => s.serverUuid === logReportState.serverUuid).length;
+  if (totalOnServer > 0) {
+    insights.push({ color: runningCount === totalOnServer ? 'green' : 'yellow', text: `${runningCount}/${totalOnServer} servicios activos en este servidor al momento del reporte.` });
+  }
+  return insights;
+}
+
+function calculateHealthScore(lines) {
+  if (lines.length === 0) return 70;
+  const errors   = lines.filter(l => l.level === 'error').length;
+  const warnings = lines.filter(l => l.level === 'warning').length;
+  const total    = lines.length;
+  const errorPenalty = Math.min((errors / total) * 60, 60);
+  const warnPenalty  = Math.min((warnings / total) * 20, 20);
+  return Math.max(0, Math.round(100 - errorPenalty - warnPenalty));
+}
+
+// ---- UI Rendering ----
+function renderLogLines() {
+  const container = document.getElementById('logLinesContainer');
+  if (!container) return;
+
+  let lines = logReportState.rawLines;
+  if (logReportState.activeCategory !== 'all') {
+    lines = lines.filter(l => l.level === logReportState.activeCategory);
+  }
+  if (logReportState.searchQuery.trim()) {
+    const q = logReportState.searchQuery.toLowerCase();
+    lines = lines.filter(l => l.raw.toLowerCase().includes(q));
+  }
+  logReportState.filteredLines = lines;
+
+  if (lines.length === 0) {
+    container.innerHTML = `
+      <div class="log-empty-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>No hay logs en esta categoría</span>
+      </div>`;
+    return;
+  }
+
+  const BADGE = { error: 'ERROR', warning: 'WARN', info: 'INFO', success: 'OK', debug: 'DEBUG' };
+  container.innerHTML = lines.map(l => `
+    <div class="log-line lvl-${l.level}">
+      <span class="log-line-num">${l.idx}</span>
+      <span class="log-line-badge">${BADGE[l.level] || 'INFO'}</span>
+      <span class="log-line-text">${escapeHtml(l.text)}</span>
+      ${l.time ? `<span class="log-line-time">${l.time}</span>` : ''}
+    </div>
+  `).join('');
+}
+
+function updateCategoryCards() {
+  const counts = { error: 0, warning: 0, info: 0, success: 0 };
+  logReportState.rawLines.forEach(l => { if (counts[l.level] !== undefined) counts[l.level]++; });
+  document.getElementById('catCountError').textContent   = counts.error;
+  document.getElementById('catCountWarning').textContent = counts.warning;
+  document.getElementById('catCountInfo').textContent    = counts.info;
+  document.getElementById('catCountSuccess').textContent = counts.success;
+  ['error', 'warning', 'info', 'success'].forEach(cat => {
+    const card = document.getElementById(`catCard${cat.charAt(0).toUpperCase() + cat.slice(1)}`);
+    if (card) card.classList.toggle('active-cat', logReportState.activeCategory === cat);
+  });
+}
+
+function renderHealthScore(score) {
+  const ring    = document.getElementById('healthScoreRing');
+  const numEl   = document.getElementById('healthScoreNum');
+  const titleEl = document.getElementById('healthScoreTitle');
+  const descEl  = document.getElementById('healthScoreDesc');
+  const barEl   = document.getElementById('healthProgressBar');
+  if (!ring || !numEl) return;
+
+  const circumference = 188.4;
+  ring.style.strokeDashoffset = circumference - (score / 100) * circumference;
+
+  let color, title, desc;
+  if (score >= 85) {
+    color = '#10b981'; title = '✓ Servidor Saludable';
+    desc  = 'El análisis de logs no revela problemas críticos. El sistema opera con normalidad.';
+  } else if (score >= 60) {
+    color = '#f59e0b'; title = '⚠ Atención Recomendada';
+    desc  = 'Se detectaron advertencias o errores moderados. Revisa los eventos marcados para evitar degradación.';
+  } else {
+    color = '#ef4444'; title = '✗ Problemas Detectados';
+    desc  = 'Alta frecuencia de errores. Se recomienda revisión inmediata de los servicios y configuraciones del servidor.';
+  }
+  ring.style.stroke = color;
+  numEl.textContent = score;
+  numEl.style.color = color;
+  if (titleEl) { titleEl.textContent = title; titleEl.style.color = color; }
+  if (descEl)  descEl.textContent = desc;
+  if (barEl)   { barEl.style.width = `${score}%`; barEl.style.background = color; }
+}
+
+function renderInsights(insights) {
+  const list = document.getElementById('insightList');
+  if (!list) return;
+  list.innerHTML = insights.map(i => `
+    <li class="insight-item">
+      <span class="insight-dot ${i.color}"></span>
+      <span>${escapeHtml(i.text)}</span>
+    </li>
+  `).join('');
+}
+
+// ---- Interactions ----
+function filterLogsByCategory(category) {
+  logReportState.activeCategory = category;
+  updateCategoryCards();
+  renderLogLines();
+}
+
+function filterLogLines(query) {
+  logReportState.searchQuery = query;
+  renderLogLines();
+}
+
+// ---- Modal Open / Close ----
+async function openLogReportModal(serverUuid, serverName, serverIp) {
+  const modal = document.getElementById('logReportModal');
+  if (!modal) return;
+
+  logReportState.serverUuid     = serverUuid;
+  logReportState.serverName     = serverName;
+  logReportState.serverIp       = serverIp;
+  logReportState.rawLines       = [];
+  logReportState.filteredLines  = [];
+  logReportState.activeCategory = 'all';
+  logReportState.searchQuery    = '';
+  logReportState.generatedAt    = new Date();
+
+  const nameEl   = document.getElementById('reportServerName');
+  const ipEl     = document.getElementById('reportServerIp');
+  const dateEl   = document.getElementById('reportGeneratedAt');
+  const totalEl  = document.getElementById('reportTotalLines');
+  const footerEl = document.getElementById('reportFooterInfo');
+
+  if (nameEl)  nameEl.textContent  = `Reporte — ${serverName}`;
+  if (ipEl)    ipEl.textContent    = serverIp;
+  if (dateEl)  dateEl.textContent  = logReportState.generatedAt.toLocaleString('es-BO');
+  if (totalEl) totalEl.textContent = 'Cargando...';
+  if (footerEl) footerEl.textContent = `Generado el ${logReportState.generatedAt.toLocaleString('es-BO')}`;
+
+  document.getElementById('logLinesContainer').innerHTML = `
+    <div class="log-loading-state">
+      <div class="log-spinner"></div>
+      <span>Obteniendo logs del servidor...</span>
+    </div>`;
+  document.getElementById('insightList').innerHTML = `
+    <li class="insight-item"><span class="insight-dot blue"></span><span>Analizando logs...</span></li>`;
+  ['catCountError','catCountWarning','catCountInfo','catCountSuccess'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.textContent = '–';
+  });
+  renderHealthScore(0);
+
+  const searchEl = document.getElementById('logSearchInput');
+  if (searchEl) searchEl.value = '';
+
+  const refreshBtn = document.getElementById('btnRefreshLogs');
+  if (refreshBtn) refreshBtn.onclick = () => loadAndRenderLogs();
+
+  modal.classList.add('open');
+  await loadAndRenderLogs();
+}
+
+async function loadAndRenderLogs() {
+  const refreshBtn = document.getElementById('btnRefreshLogs');
+  if (refreshBtn) refreshBtn.classList.add('spinning');
+
+  try {
+    const [serverRaw, appRaw] = await Promise.all([
+      LogAPI.getServerLogs(logReportState.serverUuid),
+      LogAPI.getApplicationLogs(logReportState.serverUuid),
+    ]);
+
+    let combined = [serverRaw, appRaw].filter(Boolean).join('\n');
+    if (!combined.trim()) {
+      combined = generateDiagnosticLog(logReportState.serverUuid, logReportState.serverName, logReportState.serverIp);
+    }
+
+    logReportState.rawLines     = parseLogLines(combined);
+    logReportState.generatedAt  = new Date();
+
+    const totalEl  = document.getElementById('reportTotalLines');
+    const footerEl = document.getElementById('reportFooterInfo');
+    if (totalEl)  totalEl.textContent  = `${logReportState.rawLines.length} líneas`;
+    if (footerEl) footerEl.textContent = `Generado el ${logReportState.generatedAt.toLocaleString('es-BO')} — ${logReportState.rawLines.length} entradas`;
+
+    renderHealthScore(calculateHealthScore(logReportState.rawLines));
+    updateCategoryCards();
+    renderInsights(buildInsights(logReportState.rawLines, logReportState.serverName));
+    renderLogLines();
+  } catch (err) {
+    console.error('Log fetch error:', err);
+    document.getElementById('logLinesContainer').innerHTML = `
+      <div class="log-empty-state">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
+        </svg>
+        <span style="color:#fca5a5;">Error al obtener logs: ${escapeHtml(err.message)}</span>
+      </div>`;
+    showToast(`Error al cargar logs: ${err.message}`, 'error');
+  } finally {
+    if (refreshBtn) refreshBtn.classList.remove('spinning');
+  }
+}
+
+function generateDiagnosticLog(serverUuid, serverName, serverIp) {
+  const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  const server = state.servers.find(s => s.uuid === serverUuid);
+  const serverServices = state.services.filter(s => s.serverUuid === serverUuid);
+  const lines = [];
+
+  lines.push(`[INFO] ${now} SIS MONITOREO — Reporte Diagnóstico Generado`);
+  lines.push(`[INFO] ${now} Servidor: ${serverName} (${serverIp})`);
+  lines.push(`[INFO] ${now} Estado de conectividad: ${server?.is_reachable ? 'ACCESIBLE' : 'INACCESIBLE'}`);
+
+  if (!server?.is_reachable) {
+    lines.push(`[ERROR] ${now} El servidor ${serverIp} no responde. Verifica la conexión de red y el firewall.`);
+  } else {
+    lines.push(`[SUCCESS] ${now} Conexión SSH verificada con ${serverIp}`);
+  }
+
+  if (server?.settings?.is_sentinel_enabled) {
+    lines.push(`[SUCCESS] ${now} Agente Sentinel activo — Métricas del sistema disponibles`);
+  } else {
+    lines.push(`[WARNING] ${now} Agente Sentinel no activo — Las métricas detalladas no están disponibles`);
+  }
+
+  if (server?.proxy?.status === 'running') {
+    lines.push(`[SUCCESS] ${now} Traefik Reverse Proxy en ejecución (puertos 80, 443, 8080)`);
+  }
+
+  lines.push(`[INFO] ${now} Total de servicios en el servidor: ${serverServices.length}`);
+
+  serverServices.forEach(svc => {
+    const isRunning = svc.status.includes('running') || svc.status.includes('healthy');
+    const lvl = isRunning ? 'SUCCESS' : (svc.status.includes('degraded') ? 'WARNING' : 'ERROR');
+    lines.push(`[${lvl}] ${now} ${svc.typeName}: ${svc.name} — Estado: ${svc.status}`);
+    if (svc.fqdn) lines.push(`[INFO] ${now}   Dominio: ${svc.fqdn}`);
+    if (!isRunning) lines.push(`[ERROR] ${now}   El servicio "${svc.name}" no está en ejecución. Requiere atención.`);
+  });
+
+  if (serverServices.length === 0) {
+    lines.push(`[WARNING] ${now} No se detectaron servicios registrados en este servidor`);
+  }
+
+  const runningCount = serverServices.filter(s => s.status.includes('running') || s.status.includes('healthy')).length;
+  const uptime = serverServices.length > 0 ? Math.round((runningCount / serverServices.length) * 100) : 0;
+  lines.push(`[INFO] ${now} Uptime de servicios: ${runningCount}/${serverServices.length} (${uptime}%)`);
+
+  if (uptime === 100 && serverServices.length > 0) {
+    lines.push(`[SUCCESS] ${now} Todos los servicios operan con normalidad`);
+  } else if (uptime >= 50) {
+    lines.push(`[WARNING] ${now} Algunos servicios requieren atención — Uptime por debajo del 100%`);
+  } else if (serverServices.length > 0) {
+    lines.push(`[ERROR] ${now} Múltiples servicios caídos — Revisar infraestructura inmediatamente`);
+  }
+
+  lines.push(`[INFO] ${now} --- FIN DEL REPORTE DIAGNÓSTICO ---`);
+  return lines.join('\n');
+}
+
+function closeLogReportModal() {
+  const modal = document.getElementById('logReportModal');
+  if (modal) modal.classList.remove('open');
+}
+
+// ---- Export Functions ----
+function buildReportText() {
+  const { serverName, serverIp, generatedAt, rawLines } = logReportState;
+  const dt = generatedAt ? generatedAt.toLocaleString('es-BO') : '--';
+  const counts = { error: 0, warning: 0, info: 0, success: 0, debug: 0 };
+  rawLines.forEach(l => { if (counts[l.level] !== undefined) counts[l.level]++; });
+  const sep = '='.repeat(70);
+  return [
+    sep,
+    '  SIS MONITOREO — REPORTE DE LOGS',
+    `  Servidor  : ${serverName}`,
+    `  IP        : ${serverIp}`,
+    `  Generado  : ${dt}`,
+    `  Total     : ${rawLines.length} líneas`,
+    sep,
+    '  RESUMEN DE CATEGORÍAS',
+    `  ● Errores      : ${counts.error}`,
+    `  ● Advertencias : ${counts.warning}`,
+    `  ● Info         : ${counts.info}`,
+    `  ● Exitosos     : ${counts.success}`,
+    `  ● Debug        : ${counts.debug}`,
+    sep, '',
+    ...rawLines.map(l => `[${l.level.toUpperCase().padEnd(7)}] ${l.time ? l.time + '  ' : ''}${l.text}`),
+    '',
+    sep,
+    '  FIN DEL REPORTE — SIS MONITOREO',
+    sep,
+  ].join('\n');
+}
+
+function exportReportAsText() {
+  const text = buildReportText();
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g, '-');
+  a.href = url;
+  a.download = `reporte-logs-${logReportState.serverName.replace(/\s+/g, '_')}-${ts}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Reporte exportado correctamente', 'success');
+}
+
+function copyReportToClipboard() {
+  copyToClipboard(buildReportText(), 'Reporte copiado al portapapeles');
+}
+
+// ---- Inject "Generar Reporte" button into each server card ----
+// We patch renderServerCards after its definition
+(function patchRenderServerCards() {
+  const _original = window.renderServerCards || renderServerCards;
+  const patched = function() {
+    _original();
+    document.querySelectorAll('.server-card[data-uuid]').forEach(card => {
+      const uuid = card.dataset.uuid;
+      const server = state.servers.find(s => s.uuid === uuid);
+      if (!server) return;
+      const actionsRow = card.querySelector('.server-card-actions');
+      if (!actionsRow || actionsRow.querySelector('.btn-report-logs')) return;
+
+      const reportBtn = document.createElement('button');
+      reportBtn.className = 'btn-report-logs';
+      reportBtn.style.cssText = [
+        'display:inline-flex; align-items:center; gap:5px;',
+        'padding:6px 12px; font-size:0.8rem; font-weight:600;',
+        'background:linear-gradient(135deg,rgba(129,140,248,0.15),rgba(6,182,212,0.1));',
+        'border:1px solid rgba(129,140,248,0.35); border-radius:6px;',
+        'color:#a5b4fc; cursor:pointer; transition:all 200ms; white-space:nowrap;',
+      ].join('');
+      reportBtn.title = 'Generar reporte de logs para este servidor';
+      reportBtn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        Reporte de Logs`;
+      reportBtn.onmouseenter = () => {
+        reportBtn.style.background = 'linear-gradient(135deg,rgba(129,140,248,0.28),rgba(6,182,212,0.18))';
+        reportBtn.style.borderColor = 'rgba(129,140,248,0.6)';
+        reportBtn.style.boxShadow   = '0 0 14px rgba(129,140,248,0.2)';
+        reportBtn.style.color = '#c7d2fe';
+      };
+      reportBtn.onmouseleave = () => {
+        reportBtn.style.background = 'linear-gradient(135deg,rgba(129,140,248,0.15),rgba(6,182,212,0.1))';
+        reportBtn.style.borderColor = 'rgba(129,140,248,0.35)';
+        reportBtn.style.boxShadow   = '';
+        reportBtn.style.color = '#a5b4fc';
+      };
+      reportBtn.onclick = () => openLogReportModal(server.uuid, server.name, server.ip);
+
+      actionsRow.insertBefore(reportBtn, actionsRow.firstChild);
+      actionsRow.style.flexWrap = 'wrap';
+      actionsRow.style.gap = '6px';
+    });
+  };
+  // Override global reference
+  window.renderServerCards = patched;
+  // Also reassign so the updateUI call picks it up
+  if (typeof renderServerCards !== 'undefined') {
+    // We've already patched via window, updateUI references renderServerCards directly,
+    // so we reassign the local reference by patching updateUI as well
+    const _origUpdateUI = updateUI;
+    window.updateUI = function() {
+      _origUpdateUI();
+      // inject buttons after updateUI finishes rendering cards
+      document.querySelectorAll('.server-card[data-uuid]').forEach(card => {
+        const uuid = card.dataset.uuid;
+        const server = state.servers.find(s => s.uuid === uuid);
+        if (!server) return;
+        const actionsRow = card.querySelector('.server-card-actions');
+        if (!actionsRow || actionsRow.querySelector('.btn-report-logs')) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'btn-report-logs';
+        btn.style.cssText = [
+          'display:inline-flex; align-items:center; gap:5px;',
+          'padding:6px 12px; font-size:0.8rem; font-weight:600;',
+          'background:linear-gradient(135deg,rgba(129,140,248,0.15),rgba(6,182,212,0.1));',
+          'border:1px solid rgba(129,140,248,0.35); border-radius:6px;',
+          'color:#a5b4fc; cursor:pointer; transition:all 200ms; white-space:nowrap;',
+        ].join('');
+        btn.title = 'Generar reporte de logs para este servidor';
+        btn.innerHTML = `
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          Reporte de Logs`;
+        btn.onmouseenter = () => {
+          btn.style.background = 'linear-gradient(135deg,rgba(129,140,248,0.28),rgba(6,182,212,0.18))';
+          btn.style.borderColor = 'rgba(129,140,248,0.6)';
+          btn.style.boxShadow   = '0 0 14px rgba(129,140,248,0.2)';
+          btn.style.color = '#c7d2fe';
+        };
+        btn.onmouseleave = () => {
+          btn.style.background = 'linear-gradient(135deg,rgba(129,140,248,0.15),rgba(6,182,212,0.1))';
+          btn.style.borderColor = 'rgba(129,140,248,0.35)';
+          btn.style.boxShadow   = '';
+          btn.style.color = '#a5b4fc';
+        };
+        btn.onclick = () => openLogReportModal(server.uuid, server.name, server.ip);
+
+        actionsRow.insertBefore(btn, actionsRow.firstChild);
+        actionsRow.style.flexWrap = 'wrap';
+        actionsRow.style.gap = '6px';
+      });
+    };
+  }
+})();

@@ -419,6 +419,181 @@
     </div>
   </div>
 
+  <!-- Modal: Reporte de Logs del Servidor -->
+  <div class="modal-overlay" id="logReportModal">
+    <div class="report-modal-card">
+
+      <!-- Report Header -->
+      <div class="report-header">
+        <div class="report-header-left">
+          <div class="report-server-avatar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+              <line x1="6" y1="6" x2="6.01" y2="6"/>
+              <line x1="6" y1="18" x2="6.01" y2="18"/>
+            </svg>
+          </div>
+          <div class="report-header-info">
+            <h3 id="reportServerName">Reporte de Logs</h3>
+            <div class="report-meta">
+              <span id="reportServerIp">--</span>
+              <span>•</span>
+              <span id="reportGeneratedAt">--</span>
+              <span>•</span>
+              <span id="reportTotalLines">0 líneas</span>
+            </div>
+          </div>
+        </div>
+        <div class="report-header-actions">
+          <button class="btn btn-outline btn-sm" id="btnRefreshLogs" title="Actualizar logs">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+            </svg>
+            <span>Actualizar</span>
+          </button>
+          <button class="modal-close-btn" onclick="closeLogReportModal()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Report Body -->
+      <div class="report-body">
+
+        <!-- Health Score -->
+        <div class="health-score-bar">
+          <div class="health-score-circle">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+              <circle id="healthScoreRing" cx="36" cy="36" r="30" fill="none" stroke="#10b981" stroke-width="6"
+                stroke-dasharray="188.4" stroke-dashoffset="188.4" stroke-linecap="round"
+                style="transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), stroke 0.5s;"/>
+            </svg>
+            <div class="health-score-text">
+              <span class="health-score-num" id="healthScoreNum">--</span>
+              <span class="health-score-label">Score</span>
+            </div>
+          </div>
+          <div class="health-score-info">
+            <h4 id="healthScoreTitle">Calculando estado del servidor...</h4>
+            <p id="healthScoreDesc">Analizando los logs para determinar el nivel de salud del sistema.</p>
+            <div class="health-progress-track">
+              <div class="health-progress-fill" id="healthProgressBar" style="width:0%; background: #10b981;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Cards -->
+        <div class="log-cats-grid">
+          <div class="log-cat-card cat-error" onclick="filterLogsByCategory('error')" id="catCardError">
+            <div class="log-cat-count" id="catCountError">0</div>
+            <div class="log-cat-name">Errores</div>
+            <div class="log-cat-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>
+              </svg>
+            </div>
+          </div>
+          <div class="log-cat-card cat-warning" onclick="filterLogsByCategory('warning')" id="catCardWarning">
+            <div class="log-cat-count" id="catCountWarning">0</div>
+            <div class="log-cat-name">Advertencias</div>
+            <div class="log-cat-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+          </div>
+          <div class="log-cat-card cat-info" onclick="filterLogsByCategory('info')" id="catCardInfo">
+            <div class="log-cat-count" id="catCountInfo">0</div>
+            <div class="log-cat-name">Info</div>
+            <div class="log-cat-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+            </div>
+          </div>
+          <div class="log-cat-card cat-success" onclick="filterLogsByCategory('success')" id="catCardSuccess">
+            <div class="log-cat-count" id="catCountSuccess">0</div>
+            <div class="log-cat-name">Exitosos</div>
+            <div class="log-cat-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insights de Interpretación -->
+        <div class="report-insights">
+          <h4>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Interpretación Automática
+          </h4>
+          <ul class="insight-list" id="insightList">
+            <li class="insight-item">
+              <span class="insight-dot blue"></span>
+              <span>Analizando logs del servidor...</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Visor de Logs -->
+        <div class="log-viewer-section">
+          <div class="log-viewer-toolbar">
+            <h4>📋 Visor de Logs en Tiempo Real</h4>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <div class="log-search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="logSearchInput" placeholder="Filtrar logs..." oninput="filterLogLines(this.value)">
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="filterLogsByCategory('all')" id="btnShowAllLogs" style="white-space:nowrap;">
+                Todos
+              </button>
+            </div>
+          </div>
+          <div class="log-lines-container" id="logLinesContainer">
+            <div class="log-loading-state">
+              <div class="log-spinner"></div>
+              <span>Cargando logs del servidor...</span>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /report-body -->
+
+      <!-- Report Footer -->
+      <div class="report-footer">
+        <div class="report-footer-left" id="reportFooterInfo">Generado el --</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-export" onclick="exportReportAsText()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Exportar Reporte (.txt)
+          </button>
+          <button class="btn-export" onclick="copyReportToClipboard()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copiar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Toast Container -->
   <div class="toast-container" id="toastContainer"></div>
 
